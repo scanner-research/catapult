@@ -512,6 +512,17 @@ Polymer({
         e.stopPropagation();
       }
     }));
+
+    hkc.addHotKey(new tr.ui.b.HotKey({
+      eventType: 'keypress',
+      keyCode: 'c'.charCodeAt(0),
+      useCapture: false,
+      thisArg: this,
+      callback: function(e) {
+        this.collapseAll_();
+        e.stopPropagation();
+      }
+    }));
   },
 
   onViewportChanged_: function(e) {
@@ -532,6 +543,13 @@ Polymer({
   toggleHighlightVSync_: function() {
     this.highlightVSyncCheckbox_.checked =
         !this.highlightVSyncCheckbox_.checked;
+  },
+
+  collapseAll_: function() {
+    var processTracks = this.trackView_.modelTrack_.processTracks_;
+    processTracks.map(function(proc) {
+      proc.expanded = false;
+    });
   },
 
   setFindCtlText: function(string) {

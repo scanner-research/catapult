@@ -126,6 +126,8 @@ tr.exportTo('tr.ui.tracks', function() {
       var processes = this.model_.getAllProcesses();
       processes.sort(tr.model.Process.compare);
 
+      this.processTracks_ = [];
+
       for (var i = 0; i < processes.length; ++i) {
         var process = processes[i];
 
@@ -135,6 +137,7 @@ tr.exportTo('tr.ui.tracks', function() {
           continue;
 
         Polymer.dom(this).appendChild(track);
+        this.processTracks_.push(track);
       }
       this.viewport_.rebuildEventToTrackMap();
       this.viewport_.rebuildContainerToTrackMap();
