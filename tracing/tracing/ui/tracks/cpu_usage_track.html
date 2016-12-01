@@ -69,7 +69,7 @@ tr.exportTo('tr.ui.tracks', function() {
       // an out-of-memory error, throw an error here if there are too many
       // CPU intervals to handle.
       if (intervalCount > MAX_CPU_TRACK_INTERVAL_COUNT) {
-        throw new Error('The trace is too long or the CPU usage counter ' +
+        console.log('The trace is too long or the CPU usage counter ' +
             'interval is too small, leading to too many CPU usage intervals.');
       }
       var cpuUsage = undefined;
