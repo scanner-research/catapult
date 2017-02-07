@@ -8,7 +8,7 @@ import mock
 
 from google.appengine.ext import ndb
 
-from dashboard import testing_common
+from dashboard.common import testing_common
 from dashboard.models import internal_only_model
 
 
@@ -33,7 +33,6 @@ class InternalOnlyModelTest(testing_common.TestCase):
     super(InternalOnlyModelTest, self).setUp()
     testing_common.SetIsInternalUser('x@google.com', True)
     testing_common.SetIsInternalUser('x@foo.com', False)
-    self.PatchDatastoreHooksRequest()
 
   def testInternalOnlyModel_InternalUser_EntityFetched(self):
     key = InternalOnlyModelExample(internal_only=True).put()

@@ -14,8 +14,8 @@ from google.appengine.ext import ndb
 from google.appengine.runtime import apiproxy_errors
 
 from dashboard import layered_cache
-from dashboard import stored_object
-from dashboard import testing_common
+from dashboard.common import stored_object
+from dashboard.common import testing_common
 
 
 class LayeredCacheTest(testing_common.TestCase):
@@ -29,7 +29,6 @@ class LayeredCacheTest(testing_common.TestCase):
     self.UnsetCurrentUser()
     testing_common.SetIsInternalUser('internal@chromium.org', True)
     testing_common.SetIsInternalUser('foo@chromium.org', False)
-    self.PatchDatastoreHooksRequest()
 
   def testSetAndGet(self):
     self.SetCurrentUser('internal@chromium.org')

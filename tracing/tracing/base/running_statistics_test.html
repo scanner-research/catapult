@@ -116,12 +116,10 @@ tr.b.unittest.testSuite(function() {
   });
 
   test('merge', function() {
-    var data1, data2, data, stats;
-
-    data1 = [];
-    data2 = [];
-    data = data1.concat(data2);
-    stats = run(data1).merge(run(data2));
+    var data1 = [];
+    var data2 = [];
+    var data = data1.concat(data2);
+    var stats = run(data1).merge(run(data2));
     assert.equal(Statistics.sum(data), stats.sum);
     assert.equal(Statistics.min(data), stats.min);
     assert.equal(Statistics.max(data), stats.max);
@@ -183,8 +181,13 @@ tr.b.unittest.testSuite(function() {
     var data = [1, 2, 3];
     var dict = run(data).asDict();
     var cloneDict = RunningStatistics.fromDict(dict).asDict();
-    for (var field in dict)
+    for (var field = 0; field < dict.length; ++field) {
       assert.closeTo(dict[field], cloneDict[field], 1e-6);
+    }
+
+    // You can change this number, but when you do, please explain in your CL
+    // description why it changed.
+    assert.strictEqual(32, JSON.stringify(dict).length);
   });
 });
 </script>

@@ -14,16 +14,16 @@ import webtest
 
 from dashboard import bisect_fyi
 from dashboard import bisect_fyi_test
-from dashboard import buildbucket_service
 from dashboard import layered_cache
-from dashboard import rietveld_service
-from dashboard import stored_object
-from dashboard import testing_common
 from dashboard import update_bug_with_results
-from dashboard import utils
+from dashboard.common import testing_common
+from dashboard.common import utils
+from dashboard.common import stored_object
 from dashboard.models import anomaly
 from dashboard.models import bug_data
 from dashboard.models import try_job
+from dashboard.services import buildbucket_service
+from dashboard.services import rietveld_service
 
 _SAMPLE_BISECT_RESULTS_JSON = {
     'try_job_id': 6789,
@@ -35,7 +35,6 @@ _SAMPLE_BISECT_RESULTS_JSON = {
                 '--browser=release page_cycler.intl_ar_fa_he'),
     'metric': 'warm_times/page_load_time',
     'change': '',
-    'score': 99.9,
     'good_revision': '306475',
     'bad_revision': '306478',
     'warnings': None,
@@ -220,7 +219,7 @@ class UpdateBugWithResultsTest(testing_common.TestCase):
       update_bug_with_results.issue_tracker_service, 'IssueTrackerService',
       mock.MagicMock())
   @mock.patch.object(
-      update_bug_with_results, '_IsBuildBucketJobCompleted',
+      update_bug_with_results, '_IsJobCompleted',
       mock.MagicMock(return_value=True))
   def testGet(self):
     # Put succeeded, failed, staled, and not yet finished jobs in the
@@ -282,7 +281,7 @@ class UpdateBugWithResultsTest(testing_common.TestCase):
       'AddBugComment', mock.MagicMock(return_value=False))
   @mock.patch('logging.error')
   @mock.patch.object(
-      update_bug_with_results, '_IsBuildBucketJobCompleted',
+      update_bug_with_results, '_IsJobCompleted',
       mock.MagicMock(return_value=True))
   def testGet_FailsToUpdateBug_LogsErrorAndMovesOn(self, mock_logging_error):
     # Put a successful job and a failed job with partial results.
@@ -310,7 +309,7 @@ class UpdateBugWithResultsTest(testing_common.TestCase):
       update_bug_with_results.issue_tracker_service.IssueTrackerService,
       'AddBugComment')
   @mock.patch.object(
-      update_bug_with_results, '_IsBuildBucketJobCompleted',
+      update_bug_with_results, '_IsJobCompleted',
       mock.MagicMock(return_value=True))
   def testGet_BisectCulpritHasAuthor_AssignsAuthor(self, mock_update_bug):
     # When a bisect has a culprit for a perf regression,
@@ -328,10 +327,78 @@ class UpdateBugWithResultsTest(testing_common.TestCase):
       'google.appengine.api.urlfetch.fetch',
       mock.MagicMock(side_effect=_MockFetch))
   @mock.patch.object(
+      update_bug_with_results,
+      '_MapAnomaliesToMergeIntoBug')
+  @mock.patch.object(
       update_bug_with_results.issue_tracker_service.IssueTrackerService,
       'AddBugComment')
   @mock.patch.object(
-      update_bug_with_results, '_IsBuildBucketJobCompleted',
+      update_bug_with_results.issue_tracker_service.IssueTrackerService,
+      'GetIssue',
+      mock.MagicMock(return_value={'id': 111222}))
+  @mock.patch.object(
+      update_bug_with_results, '_IsJobCompleted',
+      mock.MagicMock(return_value=True))
+  def testGet_BisectCulpritHasAuthor_MergesBugWithExisting(
+      self, mock_update_bug, mock_merge_anomalies):
+    layered_cache.SetExternal('commit_hash_2a1781d64d', 111222)
+    self._AddTryJob(12345, 'started', 'win_perf',
+                    results_data=_SAMPLE_BISECT_RESULTS_JSON)
+
+    self.testapp.get('/update_bug_with_results')
+    mock_update_bug.assert_called_once_with(
+        mock.ANY, mock.ANY,
+        cc_list=[], merge_issue=111222, labels=None, owner=None)
+    # Should have skipped updating cache.
+    self.assertEqual(
+        layered_cache.GetExternal('commit_hash_2a1781d64d'), 111222)
+    mock_merge_anomalies.assert_called_once_with(111222, 12345)
+
+  @mock.patch(
+      'google.appengine.api.urlfetch.fetch',
+      mock.MagicMock(side_effect=_MockFetch))
+  @mock.patch.object(
+      update_bug_with_results,
+      '_MapAnomaliesToMergeIntoBug')
+  @mock.patch.object(
+      update_bug_with_results.issue_tracker_service.IssueTrackerService,
+      'AddBugComment')
+  @mock.patch.object(
+      update_bug_with_results.issue_tracker_service.IssueTrackerService,
+      'GetIssue',
+      mock.MagicMock(
+          return_value={
+              'id': 111222,
+              'status': 'Duplicate'
+          }))
+  @mock.patch.object(
+      update_bug_with_results, '_IsJobCompleted',
+      mock.MagicMock(return_value=True))
+  def testGet_BisectCulpritHasAuthor_DoesNotMergeDuplicate(
+      self, mock_update_bug, mock_merge_anomalies):
+    layered_cache.SetExternal('commit_hash_2a1781d64d', 111222)
+    self._AddTryJob(12345, 'started', 'win_perf',
+                    results_data=_SAMPLE_BISECT_RESULTS_JSON)
+
+    self.testapp.get('/update_bug_with_results')
+    mock_update_bug.assert_called_once_with(
+        mock.ANY, mock.ANY,
+        cc_list=['author@email.com', 'prasadv@google.com'],
+        merge_issue=None, labels=None, owner='author@email.com')
+    # Should have skipped updating cache.
+    self.assertEqual(
+        layered_cache.GetExternal('commit_hash_2a1781d64d'), 111222)
+    # Should have skipped mapping anomalies.
+    self.assertEqual(0, mock_merge_anomalies.call_count)
+
+  @mock.patch(
+      'google.appengine.api.urlfetch.fetch',
+      mock.MagicMock(side_effect=_MockFetch))
+  @mock.patch.object(
+      update_bug_with_results.issue_tracker_service.IssueTrackerService,
+      'AddBugComment')
+  @mock.patch.object(
+      update_bug_with_results, '_IsJobCompleted',
       mock.MagicMock(return_value=True))
   def testGet_FailedRevisionResponse(self, mock_add_bug):
     # When a Rietveld CL link fails to respond, only update CL owner in CC
@@ -358,7 +425,7 @@ class UpdateBugWithResultsTest(testing_common.TestCase):
       update_bug_with_results.issue_tracker_service.IssueTrackerService,
       'AddBugComment', mock.MagicMock())
   @mock.patch.object(
-      update_bug_with_results, '_IsBuildBucketJobCompleted',
+      update_bug_with_results, '_IsJobCompleted',
       mock.MagicMock(return_value=True))
   def testGet_PositiveResult_StoresCommitHash(self):
     self._AddTryJob(12345, 'started', 'win_perf',
@@ -375,7 +442,7 @@ class UpdateBugWithResultsTest(testing_common.TestCase):
       update_bug_with_results.issue_tracker_service.IssueTrackerService,
       'AddBugComment', mock.MagicMock())
   @mock.patch.object(
-      update_bug_with_results, '_IsBuildBucketJobCompleted',
+      update_bug_with_results, '_IsJobCompleted',
       mock.MagicMock(return_value=True))
   def testGet_NegativeResult_DoesNotStoreCommitHash(self):
     sample_bisect_results = copy.deepcopy(_SAMPLE_BISECT_RESULTS_JSON)
@@ -428,7 +495,7 @@ class UpdateBugWithResultsTest(testing_common.TestCase):
       update_bug_with_results.issue_tracker_service.IssueTrackerService,
       'AddBugComment')
   @mock.patch.object(
-      update_bug_with_results, '_IsBuildBucketJobCompleted',
+      update_bug_with_results, '_IsJobCompleted',
       mock.MagicMock(return_value=True))
   def testGet_InternalOnlyTryJob_AddsInternalOnlyBugLabel(
       self, mock_update_bug):
@@ -449,7 +516,7 @@ class UpdateBugWithResultsTest(testing_common.TestCase):
       update_bug_with_results.issue_tracker_service.IssueTrackerService,
       'AddBugComment')
   @mock.patch.object(
-      update_bug_with_results, '_IsBuildBucketJobCompleted',
+      update_bug_with_results, '_IsJobCompleted',
       mock.MagicMock(return_value=True))
   def testGet_FailedTryJob_UpdatesBug(
       self, mock_update_bug):
@@ -629,7 +696,7 @@ class UpdateBugWithResultsTest(testing_common.TestCase):
       update_bug_with_results.issue_tracker_service.IssueTrackerService,
       'AddBugComment')
   @mock.patch.object(
-      update_bug_with_results, '_IsBuildBucketJobCompleted',
+      update_bug_with_results, '_IsJobCompleted',
       mock.MagicMock(return_value=True))
   def testGet_PostResult_WithoutBugEntity(
       self, mock_update_bug):

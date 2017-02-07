@@ -32,7 +32,7 @@ tr.b.unittest.testSuite(function() {
     var m = newModel(lines.join('\n'));
     assert.isFalse(m.hasImportWarnings);
 
-    var c0 = m.kernel.cpus[0];
+    var c0 = m.device.cpus[0];
     assert.equal(c0.slices.length, 0);
     assert.equal(c0.counters['.INT Frequency'].series[0].samples.length, 3);
     assert.equal(c0.counters['.MIF Frequency'].series[0].samples.length, 1);
@@ -67,8 +67,8 @@ tr.b.unittest.testSuite(function() {
     assert.equal(threads.length, 2);
 
     // in the test data, event of fb=26 occurs first, so it's thread[0]
-    var gfxFbId26Thread = threads[0]; // thread where fb == 26
-    var gfxFbId25Thread = threads[1]; // thread where fb == 25
+    var gfxFbId26Thread = threads[0]; // thread where fb === 26
+    var gfxFbId25Thread = threads[1]; // thread where fb === 25
     assert.equal(gfxFbId25Thread.name, 'exynos_flip_state (pipe:0, fb:25)');
     assert.equal(gfxFbId26Thread.name, 'exynos_flip_state (pipe:0, fb:26)');
     // Every state (except for 'flipped') will start a new slice.
@@ -114,8 +114,8 @@ tr.b.unittest.testSuite(function() {
     assert.equal(threads.length, 2);
 
     // in the test data, event of fb=26 occurs first, so it's thread[0]
-    var gfxFbId26Thread = threads[0]; // thread where fb == 26
-    var gfxFbId25Thread = threads[1]; // thread where fb == 25
+    var gfxFbId26Thread = threads[0]; // thread where fb === 26
+    var gfxFbId25Thread = threads[1]; // thread where fb === 25
     assert.equal(gfxFbId25Thread.name, 'exynos_flip_state (pipe:0, fb:25)');
     assert.equal(gfxFbId26Thread.name, 'exynos_flip_state (pipe:0, fb:26)');
     // Every state (except for 'flipped') will start a new slice.

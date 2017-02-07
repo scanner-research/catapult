@@ -9,8 +9,9 @@ import urlparse
 from py_utils import cloud_storage  # pylint: disable=import-error
 
 from telemetry import story
-from telemetry.page import shared_page_state
 from telemetry.page import cache_temperature as cache_temperature_module
+from telemetry.page import shared_page_state
+from telemetry.page import traffic_setting as traffic_setting_module
 from telemetry.internal.actions import action_runner as action_runner_module
 
 
@@ -18,18 +19,20 @@ class Page(story.Story):
 
   def __init__(self, url, page_set=None, base_dir=None, name='',
                credentials_path=None,
-               credentials_bucket=cloud_storage.PUBLIC_BUCKET, labels=None,
+               credentials_bucket=cloud_storage.PUBLIC_BUCKET, tags=None,
                startup_url='', make_javascript_deterministic=True,
                shared_page_state_class=shared_page_state.SharedPageState,
                grouping_keys=None,
-               cache_temperature=cache_temperature_module.ANY):
+               cache_temperature=cache_temperature_module.ANY,
+               traffic_setting=traffic_setting_module.NONE,
+               platform_specific=False):
     self._url = url
 
     super(Page, self).__init__(
-        shared_page_state_class, name=name, labels=labels,
+        shared_page_state_class, name=name, tags=tags,
         is_local=self._scheme in ['file', 'chrome', 'about'],
         make_javascript_deterministic=make_javascript_deterministic,
-        grouping_keys=grouping_keys)
+        grouping_keys=grouping_keys, platform_specific=platform_specific)
 
     self._page_set = page_set
     # Default value of base_dir is the directory of the file that defines the
@@ -48,6 +51,12 @@ class Page(story.Story):
     self._cache_temperature = cache_temperature
     if cache_temperature != cache_temperature_module.ANY:
       self.grouping_keys['cache_temperature'] = cache_temperature
+    if traffic_setting != traffic_setting_module.NONE:
+      self.grouping_keys['traffic_setting'] = traffic_setting
+
+    assert traffic_setting in traffic_setting_module.NETWORK_CONFIGS, (
+        'Invalid traffic setting: %s' % traffic_setting)
+    self._traffic_setting = traffic_setting
 
     # Whether to collect garbage on the page before navigating & performing
     # page actions.
@@ -68,6 +77,10 @@ class Page(story.Story):
   @property
   def cache_temperature(self):
     return self._cache_temperature
+
+  @property
+  def traffic_setting(self):
+    return self._traffic_setting
 
   @property
   def startup_url(self):
@@ -154,10 +167,6 @@ class Page(story.Story):
 
   def __str__(self):
     return self.url
-
-  def AddCustomizeBrowserOptions(self, options):
-    """ Inherit page overrides this to add customized browser options."""
-    pass
 
   @property
   def _scheme(self):

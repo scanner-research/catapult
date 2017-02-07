@@ -5,6 +5,8 @@ Use of this source code is governed by a BSD-style license that can be
 found in the LICENSE file.
 -->
 
+<link rel="import" href="/dashboard/static/events.html">
+
 <script>
 'use strict';
 
@@ -21,7 +23,7 @@ var uri = (function() {
     this.pageStateCallback_ = pageStateCallback;
     this.stateRequest_ = null;
     this.stateRequestStatus_ = null;
-    window.addEventListener('popstate', this.onPopstate_, true);
+    events.addEventListener(window, 'popstate', this.onPopstate_, true);
   };
 
   /**
@@ -124,11 +126,11 @@ var uri = (function() {
         }
       }
     }
-    var uri_str = getCurrentPathWithParams(params);
-    if (uri_str == window.location.pathname + uri.getQueryString()) {
+    var URIStr = getCurrentPathWithParams(params);
+    if (URIStr == window.location.pathname + uri.getQueryString()) {
       return;
     }
-    window.history.pushState(state, '', uri_str);
+    window.history.pushState(state, '', URIStr);
   };
 
   /**
@@ -262,12 +264,22 @@ var uri = (function() {
     return window.location.pathname + '?' + pairs.join('&');
   };
 
+  /**
+   * Gets the second argument after the .com/.
+   * @return {string} second path element.
+   */
+  var getPathName = function() {
+    return window.location.pathname.split('/')[2];
+  };
+
+
   return {
     Controller: Controller,
     getParameter: getParameter,
     getAllParameters: getAllParameters,
     getCurrentPathWithParams: getCurrentPathWithParams,
-    getQueryString: getQueryString
+    getQueryString: getQueryString,
+    getPathName: getPathName,
   };
 })();
 

@@ -60,9 +60,9 @@ import logging
 
 from google.appengine.ext import ndb
 
-from dashboard import datastore_hooks
 from dashboard import layered_cache
-from dashboard import utils
+from dashboard.common import datastore_hooks
+from dashboard.common import utils
 from dashboard.models import anomaly
 from dashboard.models import anomaly_config
 from dashboard.models import internal_only_model
@@ -249,6 +249,13 @@ class TestMetadata(internal_only_model.CreateHookInternalOnlyModel):
     if len(parts) < 7:
       return ''
     return parts[6]
+
+  @ndb.ComputedProperty
+  def test_part5_name(self):
+    parts = self.key.id().split('/')
+    if len(parts) < 8:
+      return ''
+    return parts[7]
 
   @classmethod
   def _GetMasterBotSuite(cls, key):

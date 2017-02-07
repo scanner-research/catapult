@@ -9,12 +9,13 @@ import re
 from google.appengine.api import users
 from google.appengine.ext import ndb
 
-from dashboard import issue_tracker_service
 from dashboard import oauth2_decorator
-from dashboard import request_handler
-from dashboard import utils
+from dashboard.common import request_handler
+from dashboard.common import utils
+from dashboard.models import alert_group
 from dashboard.models import anomaly
 from dashboard.models import stoppage_alert
+from dashboard.services import issue_tracker_service
 
 
 class AssociateAlertsHandler(request_handler.RequestHandler):
@@ -125,9 +126,7 @@ class AssociateAlertsHandler(request_handler.RequestHandler):
         })
         return
 
-    for a in alert_entities:
-      a.bug_id = bug_id
-    ndb.put_multi(alert_entities)
+    alert_group.ModifyAlertsAndAssociatedGroups(alert_entities, bug_id=bug_id)
 
     self.RenderHtml('bug_result.html', {'bug_id': bug_id})
 

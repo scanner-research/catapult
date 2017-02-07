@@ -82,6 +82,8 @@ For detailed study of ubercompositor, pass --trace-ubercompositor.
 When in doubt, just try out --trace-frame-viewer.
 """)
 
+  logging.basicConfig()
+
   if options.verbose:
     logging.getLogger().setLevel(logging.DEBUG)
 
@@ -98,6 +100,10 @@ When in doubt, just try out --trace-frame-viewer.
 
   options.device = device
   options.package_info = package_info
+
+  # Include Chrome categories by default in profile_chrome.
+  if not options.chrome_categories:
+    options.chrome_categories = chrome_tracing_agent.DEFAULT_CHROME_CATEGORIES
 
   if options.chrome_categories in ['list', 'help']:
     ui.PrintMessage('Collecting record categories list...', eol='')
@@ -133,7 +139,8 @@ When in doubt, just try out --trace-frame-viewer.
     ui.PrintMessage('Time interval or continuous tracing should be specified.')
     return 1
 
-  if options.chrome_categories and 'webview' in options.atrace_categories:
+  if (options.chrome_categories and options.atrace_categories and
+      'webview' in options.atrace_categories):
     logging.warning('Using the "webview" category in atrace together with '
                     'Chrome tracing results in duplicate trace events.')
 

@@ -145,19 +145,19 @@ tr.exportTo('tr', function() {
       return this.helpersByConstructorGUID_[constructor.guid];
     },
 
-    childEvents: function*() {
-      yield * this.globalMemoryDumps;
-      yield * this.instantEvents;
-      yield * this.flowEvents;
-      yield * this.alerts;
-      yield * this.samples;
+    childEvents: function* () {
+      yield* this.globalMemoryDumps;
+      yield* this.instantEvents;
+      yield* this.flowEvents;
+      yield* this.alerts;
+      yield* this.samples;
     },
 
-    childEventContainers: function*() {
+    childEventContainers: function* () {
       yield this.userModel;
       yield this.device;
       yield this.kernel;
-      yield * tr.b.dictionaryValues(this.processes);
+      yield* tr.b.dictionaryValues(this.processes);
     },
 
     /**
@@ -245,7 +245,7 @@ tr.exportTo('tr', function() {
 
       this.categories = [];
       for (var category in categoriesDict)
-        if (category != '')
+        if (category !== '')
           this.categories.push(category);
     },
 
@@ -460,6 +460,7 @@ tr.exportTo('tr', function() {
 
     createSubSlices: function() {
       this.kernel.createSubSlices();
+      this.device.createSubSlices();
       for (var pid in this.processes)
         this.processes[pid].createSubSlices();
     },
@@ -549,10 +550,11 @@ tr.exportTo('tr', function() {
       this.patchupsToApply_ = unresolved;
     },
 
-    replacePIDRefsInPatchups: function(old_pid_ref, new_pid_ref) {
+    replacePIDRefsInPatchups: function(oldPidRef, newPidRef) {
       this.patchupsToApply_.forEach(function(patchup) {
-        if (patchup.pidRef === old_pid_ref)
-          patchup.pidRef = new_pid_ref;
+        if (patchup.pidRef === oldPidRef) {
+          patchup.pidRef = newPidRef;
+        }
       });
     },
 
@@ -643,7 +645,7 @@ tr.exportTo('tr', function() {
   };
 
   return {
-    Model: Model
+    Model,
   };
 });
 </script>

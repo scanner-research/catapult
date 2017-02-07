@@ -11,14 +11,14 @@ found in the LICENSE file.
 'use strict';
 
 tr.exportTo('tr.b', function() {
-  /***
-  * An object of this class computes basic statistics online in O(1).
-  * Usage:
-  * 1. Create an instance.
-  * 2. Add numbers using the |add| method.
-  * 3. Query statistics.
-  * 4. Repeat from step 2.
-  */
+  /**
+   * An object of this class computes basic statistics online in O(1).
+   * Usage:
+   * 1. Create an instance.
+   * 2. Add numbers using the |add| method.
+   * 3. Query statistics.
+   * 4. Repeat from step 2.
+   */
   class RunningStatistics {
     constructor() {
       this.mean_ = 0;
@@ -44,7 +44,7 @@ tr.exportTo('tr.b', function() {
     }
 
     get mean() {
-      if (this.count_ == 0)
+      if (this.count_ === 0)
         return undefined;
       return this.mean_;
     }
@@ -62,15 +62,15 @@ tr.exportTo('tr.b', function() {
     }
 
     get variance() {
-      if (this.count_ == 0)
+      if (this.count_ === 0)
         return undefined;
-      if (this.count_ == 1)
+      if (this.count_ === 1)
         return 0;
       return this.variance_ / (this.count_ - 1);
     }
 
     get stddev() {
-      if (this.count_ == 0)
+      if (this.count_ === 0)
         return undefined;
       return Math.sqrt(this.variance);
     }
@@ -138,32 +138,43 @@ tr.exportTo('tr.b', function() {
     }
 
     asDict() {
-      return {
-        mean: this.mean,
-        meanlogs: this.meanlogs_,
-        count: this.count,
-        max: this.max,
-        min: this.min,
-        sum: this.sum,
-        variance: this.variance_
-      };
+      if (!this.count) {
+        return [];
+      }
+      // It's more efficient to serialize these fields in an array. If you
+      // add any other fields, you should re-evaluate whether it would be more
+      // efficient to serialize as a dict.
+      return [
+        this.count_,
+        this.max_,
+        this.meanlogs_,
+        this.mean_,
+        this.min_,
+        this.sum_,
+        this.variance_,
+      ];
     }
 
-    static fromDict(d) {
+    static fromDict(dict) {
       var result = new RunningStatistics();
-      result.mean_ = d.mean;
-      result.count_ = d.count;
-      result.max_ = d.max;
-      result.min_ = d.min;
-      result.sum_ = d.sum;
-      result.variance_ = d.variance;
-      result.meanlogs_ = d.meanlogs;
+      if (dict.length !== 7) {
+        return result;
+      }
+      [
+        result.count_,
+        result.max_,
+        result.meanlogs_,
+        result.mean_,
+        result.min_,
+        result.sum_,
+        result.variance_,
+      ] = dict;
       return result;
     }
   }
 
   return {
-    RunningStatistics: RunningStatistics
+    RunningStatistics,
   };
 });
 </script>

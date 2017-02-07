@@ -17,11 +17,16 @@ class NetworkController(object):
   def __init__(self, network_controller_backend):
     self._network_controller_backend = network_controller_backend
 
-  def InitializeIfNeeded(self):
-    self._network_controller_backend.InitializeIfNeeded()
+  def InitializeIfNeeded(self, use_live_traffic=False):
+    self._network_controller_backend.InitializeIfNeeded(use_live_traffic)
 
   def Open(self, wpr_mode, extra_wpr_args):
     self._network_controller_backend.Open(wpr_mode, extra_wpr_args)
+
+  def UpdateTrafficSettings(self, round_trip_latency_ms=None,
+      download_bandwidth_kbps=None, upload_bandwidth_kbps=None):
+    self._network_controller_backend.ts_proxy_server.UpdateTrafficSettings(
+      round_trip_latency_ms, download_bandwidth_kbps, upload_bandwidth_kbps)
 
   @property
   def is_open(self):

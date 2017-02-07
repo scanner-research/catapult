@@ -27,11 +27,11 @@ tr.exportTo('tr.b', function() {
     if (!(value instanceof Object)) {
       if (value === undefined || value === null)
         return value;
-      if (typeof value == 'string')
+      if (typeof value === 'string')
         return value.substring();
-      if (typeof value == 'boolean')
+      if (typeof value === 'boolean')
         return value;
-      if (typeof value == 'number')
+      if (typeof value === 'number')
         return value;
       throw new Error('Unrecognized: ' + typeof value);
     }
@@ -44,7 +44,7 @@ tr.exportTo('tr.b', function() {
       return res;
     }
 
-    if (object.__proto__ != Object.prototype)
+    if (object.__proto__ !== Object.prototype)
       throw new Error('Can only clone simple types');
     var res = {};
     for (var key in object) {
@@ -62,7 +62,7 @@ tr.exportTo('tr.b', function() {
       };
     }
 
-    if (typeof(e) == 'string') {
+    if (typeof(e) === 'string') {
       return {
         typeName: 'StringError',
         message: e,
@@ -100,9 +100,9 @@ tr.exportTo('tr.b', function() {
     return stack.slice(2);
   }
 
-  function getUsingPath(path, from_dict) {
+  function getUsingPath(path, fromDict) {
     var parts = path.split('.');
-    var cur = from_dict;
+    var cur = fromDict;
 
     for (var part; parts.length && (part = parts.shift());) {
       if (!parts.length) {
@@ -128,17 +128,49 @@ tr.exportTo('tr.b', function() {
     return date.toISOString().replace('T', ' ').slice(0, 19);
   }
 
+  /**
+   * Infinity and NaN are left out of JSON for security reasons that do not
+   * apply to our use cases. This helper function allows serializing them
+   * independently of null.
+   *
+   * @param {!number} n
+   * @return {!(number|string)}
+   */
+  function numberToJson(n) {
+    if (isNaN(n)) return 'NaN';
+    if (n === Infinity) return 'Infinity';
+    if (n === -Infinity) return '-Infinity';
+    return n;
+  }
+
+  /**
+   * Infinity and NaN are left out of JSON for security reasons that do not
+   * apply to our use cases. This helper function allows deserializing them
+   * independently of null.
+   *
+   * @param {!(number|string)} n
+   * @return {!number}
+   */
+  function numberFromJson(n) {
+    if (n === 'NaN' || n === null) return NaN;
+    if (n === 'Infinity') return Infinity;
+    if (n === '-Infinity') return -Infinity;
+    return n;
+  }
+
   return {
-    addSingletonGetter: addSingletonGetter,
+    addSingletonGetter,
 
-    deepCopy: deepCopy,
+    deepCopy,
 
-    normalizeException: normalizeException,
-    stackTrace: stackTrace,
-    stackTraceAsString: stackTraceAsString,
-    formatDate: formatDate,
+    normalizeException,
+    stackTrace,
+    stackTraceAsString,
+    formatDate,
+    numberToJson,
+    numberFromJson,
 
-    getUsingPath: getUsingPath
+    getUsingPath,
   };
 });
 </script>

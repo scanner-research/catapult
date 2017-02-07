@@ -23,6 +23,27 @@ tr.exportTo('tr.v.d', function() {
     constructor(value) {
       super();
       this.value = value;
+      this._merged = false;
+    }
+
+    canAddDiagnostic(otherDiagnostic, name, parentHist, otherParentHist) {
+      return otherDiagnostic instanceof Generic;
+    }
+
+    addDiagnostic(otherDiagnostic, name, parentHist, otherParentHist) {
+      var result = new Generic([]);
+      result._merged = true;
+      if (this._merged) {
+        result.value.push(...this.value);
+      } else {
+        result.value.push(this.value);
+      }
+      if (otherDiagnostic._merged) {
+        result.value.push(...otherDiagnostic.value);
+      } else {
+        result.value.push(otherDiagnostic.value);
+      }
+      return result;
     }
 
     asDictInto_(d) {
@@ -39,7 +60,7 @@ tr.exportTo('tr.v.d', function() {
   });
 
   return {
-    Generic: Generic
+    Generic,
   };
 });
 </script>

@@ -42,15 +42,16 @@ class _DevToolsStreamReader(object):
   def __init__(self, inspector_socket, stream_handle):
     self._inspector_websocket = inspector_socket
     self._handle = stream_handle
+    self._trace_file_handle = None
     self._callback = None
-    self._data = None
 
   def Read(self, callback):
     # Do not allow the instance of this class to be reused, as
     # we only read data sequentially at the moment, so a stream
     # can only be read once.
     assert not self._callback
-    self._data = []
+    self._trace_file_handle = trace_data_module.TraceFileHandle()
+    self._trace_file_handle.Open()
     self._callback = callback
     self._ReadChunkFromStream()
     # The below is not a typo -- queue one extra read ahead to avoid latency.
@@ -65,21 +66,23 @@ class _DevToolsStreamReader(object):
 
   def _GotChunkFromStream(self, response):
     # Quietly discard responses from reads queued ahead after EOF.
-    if self._data is None:
+    if self._trace_file_handle is None:
       return
     if 'error' in response:
       raise TracingUnrecoverableException(
           'Reading trace failed: %s' % response['error']['message'])
     result = response['result']
-    self._data.append(result['data'])
+    # Convert the trace data that's receive as UTF32 to its native encoding of
+    # UTF8 in order to reduce its size.
+    self._trace_file_handle.AppendTraceData(result['data'].encode('utf8'))
     if not result.get('eof', False):
       self._ReadChunkFromStream()
       return
     req = {'method': 'IO.close', 'params': {'handle': self._handle}}
     self._inspector_websocket.SendAndIgnoreResponse(req)
-    trace_string = ''.join(self._data)
-    self._data = None
-    self._callback(trace_string)
+    self._trace_file_handle.Close()
+    self._callback(self._trace_file_handle)
+    self._trace_file_handle = None
 
 
 class TracingBackend(object):
@@ -269,7 +272,7 @@ class TracingBackend(object):
   def _NotificationHandler(self, res):
     if 'Tracing.dataCollected' == res.get('method'):
       value = res.get('params', {}).get('value')
-      self._trace_data_builder.AddEventsTo(
+      self._trace_data_builder.AddTraceFor(
         trace_data_module.CHROME_TRACE_PART, value)
     elif 'Tracing.tracingComplete' == res.get('method'):
       stream_handle = res.get('params', {}).get('stream')
@@ -279,23 +282,9 @@ class TracingBackend(object):
       reader = _DevToolsStreamReader(self._inspector_websocket, stream_handle)
       reader.Read(self._ReceivedAllTraceDataFromStream)
 
-  def _ReceivedAllTraceDataFromStream(self, data):
-    trace = json.loads(data)
-    if type(trace) == dict:
-      for part in trace_data_module.ALL_TRACE_PARTS:
-        field_name = part.raw_field_name
-        if field_name in trace:
-          self._trace_data_builder.AddEventsTo(part, trace[field_name])
-
-      if 'metadata' in trace:
-        self._trace_data_builder.SetMetadataFor(
-            trace_data_module.CHROME_TRACE_PART, trace['metadata'])
-
-    elif type(trace) == list:
-      self._trace_data_builder.AddEventsTo(
-        trace_data_module.CHROME_TRACE_PART, trace)
-    else:
-      raise TracingUnexpectedResponseException('Unexpected trace type')
+  def _ReceivedAllTraceDataFromStream(self, trace_handle):
+    self._trace_data_builder.AddTraceFor(
+        trace_data_module.CHROME_TRACE_PART, trace_handle)
     self._has_received_all_tracing_data = True
 
   def Close(self):

@@ -10,11 +10,11 @@ import webtest
 
 from google.appengine.ext import ndb
 
-from dashboard import datastore_hooks
 from dashboard import layered_cache
 from dashboard import list_tests
-from dashboard import testing_common
-from dashboard import utils
+from dashboard.common import datastore_hooks
+from dashboard.common import testing_common
+from dashboard.common import utils
 from dashboard.models import graph_data
 
 
@@ -29,7 +29,6 @@ class ListTestsTest(testing_common.TestCase):
     self.UnsetCurrentUser()
     testing_common.SetIsInternalUser('internal@chromium.org', True)
     testing_common.SetIsInternalUser('foo@chromium.org', False)
-    self.PatchDatastoreHooksRequest()
 
   def _AddSampleData(self):
     testing_common.AddTests(

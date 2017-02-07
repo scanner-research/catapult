@@ -13,6 +13,11 @@ found in the LICENSE file.
 
 <dom-module id='tr-ui-a-power-sample-summary-table'>
   <template>
+    <style>
+    tr-ui-b-table {
+      font-size: 12px;
+    }
+    </style>
     <tr-ui-b-table id="table"></tr-ui-b-table>
   </template>
 </dom-module>
@@ -114,7 +119,8 @@ Polymer({
       return 'N/A';
 
     var durationInS = tr.b.convertUnit(this.samples.bounds.duration,
-        tr.b.UnitScale.Metric.MILLI, tr.b.UnitScale.Metric.NONE);
+        tr.b.UnitPrefixScale.METRIC.MILLI,
+        tr.b.UnitPrefixScale.METRIC.NONE);
 
     return energyConsumedInJ / durationInS;
   },

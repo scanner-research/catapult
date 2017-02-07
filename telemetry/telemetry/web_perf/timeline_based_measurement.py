@@ -85,9 +85,6 @@ class _TBMResultWrapper(ResultsWrapperInterface):
     if value.tir_label:
       assert value.tir_label == self._tir_label
     else:
-      logging.warning(
-          'TimelineBasedMetric should create the interaction record label '
-          'for %r values.' % value.name)
       value.tir_label = self._tir_label
     self._results.AddValue(value)
 
@@ -205,6 +202,12 @@ class Options(object):
   def config(self):
     return self._config
 
+  def AddTimelineBasedMetric(self, metric):
+    assert isinstance(metric, basestring)
+    if self._timeline_based_metrics is None:
+      self._timeline_based_metrics = []
+    self._timeline_based_metrics.append(metric)
+
   def SetTimelineBasedMetrics(self, metrics):
     """Sets the new-style (TBMv2) metrics to run.
 
@@ -283,25 +286,29 @@ class TimelineBasedMeasurement(story_test.StoryTest):
 
   def Measure(self, platform, results):
     """Collect all possible metrics and added them to results."""
-    platform.tracing_controller.iteration_info = results.iteration_info
+    platform.tracing_controller.telemetry_info = results.telemetry_info
     trace_result = platform.tracing_controller.StopTracing()
     trace_value = trace.TraceValue(results.current_page, trace_result)
     results.AddValue(trace_value)
 
-    if self._tbm_options.GetTimelineBasedMetrics():
-      self._ComputeTimelineBasedMetrics(results, trace_value)
-      # Legacy metrics can be computed, but only if explicitly specified.
-      if self._tbm_options.GetLegacyTimelineBasedMetrics():
+    try:
+      if self._tbm_options.GetTimelineBasedMetrics():
+        self._ComputeTimelineBasedMetrics(results, trace_value)
+        # Legacy metrics can be computed, but only if explicitly specified.
+        if self._tbm_options.GetLegacyTimelineBasedMetrics():
+          self._ComputeLegacyTimelineBasedMetrics(results, trace_result)
+      else:
+        # Run all TBMv1 metrics if no other metric is specified
+        # (legacy behavior)
+        if not self._tbm_options.GetLegacyTimelineBasedMetrics():
+          logging.warn('Please specify the TBMv1 metrics you are interested in '
+                       'explicitly. This implicit functionality will be removed'
+                       ' on July 17, 2016.')
+          self._tbm_options.SetLegacyTimelineBasedMetrics(
+              _GetAllLegacyTimelineBasedMetrics())
         self._ComputeLegacyTimelineBasedMetrics(results, trace_result)
-    else:
-      # Run all TBMv1 metrics if no other metric is specified (legacy behavior)
-      if not self._tbm_options.GetLegacyTimelineBasedMetrics():
-        logging.warn('Please specify the TBMv1 metrics you are interested in '
-                     'explicitly. This implicit functionality will be removed '
-                     'on July 17, 2016.')
-        self._tbm_options.SetLegacyTimelineBasedMetrics(
-            _GetAllLegacyTimelineBasedMetrics())
-      self._ComputeLegacyTimelineBasedMetrics(results, trace_result)
+    finally:
+      trace_result.CleanUpAllTraces()
 
   def DidRunStory(self, platform):
     """Clean up after running the story."""

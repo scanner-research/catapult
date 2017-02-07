@@ -12,20 +12,94 @@ found in the LICENSE file.
 
 tr.exportTo('tr.v.d', function() {
   class Diagnostic {
+    constructor() {
+      this.guid_ = undefined;
+    }
+
+    /**
+     * Return true if |this| can be merged with |otherDiagnostic|.
+     *
+     * @param {!tr.v.d.Diagnostic} otherDiagnostic
+     * @param {!string} name
+     * @param {!tr.v.Histogram} parentHist
+     * @param {!tr.v.Histogram} otherParentHist
+     * @return {!boolean}
+     */
+    canAddDiagnostic(otherDiagnostic, name, parentHist, otherParentHist) {
+      return false;
+    }
+
+    /**
+     * If subclasses override canAddDiagnostic() then they must also override
+     * this method to return a replacement Diagnostic.
+     * Subclasses can modify and return |this| or create and return a new
+     * Diagnostic, but must not modify |otherDiagnostic|.
+     *
+     * @param {!tr.v.d.Diagnostic} otherDiagnostic
+     * @param {!string} name
+     * @param {!tr.v.Histogram} parentHist
+     * @param {!tr.v.Histogram} otherParentHist
+     * @return {!tr.v.d.Diagnostic}
+     */
+    addDiagnostic(otherDiagnostic, name, parentHist, otherParentHist) {
+      throw new Error('Abstract virtual method: subclasses must override ' +
+          'this method if they override canAddDiagnostic');
+    }
+
+    get guid() {
+      if (this.guid_ === undefined) {
+        this.guid_ = tr.b.GUID.allocateUUID4();
+      }
+
+      return this.guid_;
+    }
+
+    set guid(guid) {
+      if (this.guid_ !== undefined) {
+        throw new Error('Cannot reset guid');
+      }
+
+      this.guid_ = guid;
+    }
+
+    /**
+     * If this Diagnostic is shared between multiple Histograms, then return its
+     * |guid|. Otherwise, serialize this Diagnostic to a dictionary.
+     *
+     * @return {string|!Object}
+     */
+    asDictOrReference() {
+      if (this.guid_ !== undefined) {
+        return this.guid_;
+      }
+      return this.asDict();
+    }
+
+    /**
+     * Serialize all of the information in this Diagnostic to a dictionary,
+     * regardless of whether it is shared between multiple Histograms.
+     *
+     * @return {!Object}
+     */
     asDict() {
       var result = {type: this.constructor.name};
+      if (this.guid_ !== undefined) {
+        result.guid = this.guid_;
+      }
       this.asDictInto_(result);
       return result;
     }
 
     asDictInto_(d) {
-      throw new Error('Abstract virtual method');
+      throw new Error('Abstract virtual method: subclasses must override ' +
+          'this method if they override canAddDiagnostic');
     }
 
     static fromDict(d) {
       var typeInfo = Diagnostic.findTypeInfoWithName(d.type);
-      if (!typeInfo)
+      if (!typeInfo) {
         throw new Error('Unrecognized diagnostic type: ' + d.type);
+      }
 
       return typeInfo.constructor.fromDict(d);
     }
@@ -46,7 +120,7 @@ tr.exportTo('tr.v.d', function() {
   });
 
   return {
-    Diagnostic: Diagnostic
+    Diagnostic,
   };
 });
 </script>

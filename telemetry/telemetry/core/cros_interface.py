@@ -335,6 +335,15 @@ class CrOSInterface(object):
         logging.debug("GetFileContents(%s)->%s" % (filename, res))
         return res
 
+  def HasSystemd(self):
+    """Return True or False to indicate if systemd is used.
+
+    Note: This function checks to see if the 'systemctl' utilitary
+    is installed. This is only installed along with the systemd daemon.
+    """
+    _, stderr = self.RunCmdOnDevice(['systemctl'], quiet=True)
+    return stderr == ''
+
   def ListProcesses(self):
     """Returns (pid, cmd, ppid, state) of all processes on the device."""
     stdout, stderr = self.RunCmdOnDevice(
@@ -416,9 +425,17 @@ class CrOSInterface(object):
     return len(kills) - 2
 
   def IsServiceRunning(self, service_name):
-    stdout, stderr = self.RunCmdOnDevice(['status', service_name], quiet=True)
+    """Check with the init daemon if the given service is running."""
+    if self.HasSystemd():
+      # Querying for the pid of the service will return 'MainPID=0' if
+      # the service is not running.
+      stdout, stderr = self.RunCmdOnDevice(
+          ['systemctl', 'show', '-p', 'MainPID', service_name], quiet=True)
+      running = int(stdout.split('=')[1]) != 0
+    else:
+      stdout, stderr = self.RunCmdOnDevice(['status', service_name], quiet=True)
+      running = 'running, process' in stdout
     assert stderr == '', stderr
-    running = 'running, process' in stdout
     logging.debug("IsServiceRunning(%s)->%s" % (service_name, running))
     return running
 
@@ -450,16 +467,19 @@ class CrOSInterface(object):
 
     return True
 
-  def FilesystemMountedAt(self, path):
-    """Returns the filesystem mounted at |path|"""
-    df_out, _ = self.RunCmdOnDevice(['/bin/df', path])
+  def _GetMountSourceAndTarget(self, path):
+    df_out, _ = self.RunCmdOnDevice(['/bin/df', '--output=source,target', path])
     df_ary = df_out.split('\n')
     # 3 lines for title, mount info, and empty line.
     if len(df_ary) == 3:
       line_ary = df_ary[1].split()
-      if line_ary:
-        return line_ary[0]
+      return line_ary if len(line_ary) == 2 else None
     return None
+
+  def FilesystemMountedAt(self, path):
+    """Returns the filesystem mounted at |path|"""
+    mount_info = self._GetMountSourceAndTarget(path)
+    return mount_info[0] if mount_info else None
 
   def CryptohomePath(self, user):
     """Returns the cryptohome mount point for |user|."""
@@ -472,9 +492,13 @@ class CrOSInterface(object):
   def IsCryptohomeMounted(self, username, is_guest):
     """Returns True iff |user|'s cryptohome is mounted."""
     profile_path = self.CryptohomePath(username)
-    mount = self.FilesystemMountedAt(profile_path)
-    mount_prefix = 'guestfs' if is_guest else '/home/.shadow/'
-    return mount and mount.startswith(mount_prefix)
+    mount_info = self._GetMountSourceAndTarget(profile_path)
+    if mount_info:
+      # Checks if the filesytem at |profile_path| is mounted on |profile_path|
+      # itself. Before mounting cryptohome, it shows an upper directory (/home).
+      is_guestfs = (mount_info[0] == 'guestfs')
+      return is_guestfs == is_guest and mount_info[1] == profile_path
+    return False
 
   def TakeScreenshot(self, file_path):
     stdout, stderr = self.RunCmdOnDevice(
@@ -520,15 +544,22 @@ class CrOSInterface(object):
 
   def RestartUI(self, clear_enterprise_policy):
     logging.info('(Re)starting the ui (logs the user out)')
+    start_cmd = ['start', 'ui']
+    restart_cmd = ['restart', 'ui']
+    stop_cmd = ['stop', 'ui']
+    if self.HasSystemd():
+      start_cmd.insert(0, 'systemctl')
+      restart_cmd.insert(0, 'systemctl')
+      stop_cmd.insert(0, 'systemctl')
     if clear_enterprise_policy:
-      self.RunCmdOnDevice(['stop', 'ui'])
+      self.RunCmdOnDevice(stop_cmd)
       self.RmRF('/var/lib/whitelist/*')
       self.RmRF(r'/home/chronos/Local\ State')
 
     if self.IsServiceRunning('ui'):
-      self.RunCmdOnDevice(['restart', 'ui'])
+      self.RunCmdOnDevice(restart_cmd)
     else:
-      self.RunCmdOnDevice(['start', 'ui'])
+      self.RunCmdOnDevice(start_cmd)
 
   def CloseConnection(self):
     if not self.local:

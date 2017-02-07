@@ -13,8 +13,8 @@ found in the LICENSE file.
 <link rel="import" href="/tracing/ui/base/dom_helpers.html">
 <link rel="import" href="/tracing/ui/side_panel/side_panel.html">
 <link rel="import" href="/tracing/ui/side_panel/side_panel_registry.html">
-<link rel="import" href="/tracing/value/ui/value_set_view.html">
-<link rel="import" href="/tracing/value/value_set.html">
+<link rel="import" href="/tracing/value/histogram_set.html">
+<link rel="import" href="/tracing/value/ui/histogram_set_view.html">
 
 <dom-module id="tr-ui-sp-metrics-side-panel">
   <template>
@@ -26,10 +26,15 @@ found in the LICENSE file.
     div#error {
       color: red;
     }
+    #results {
+      font-size: 12px;
+    }
     </style>
 
     <top-left-controls id="top_left_controls"></top-left-controls>
-    <tr-v-ui-value-set-view id="results"></tr-v-ui-value-set-view>
+
+    <tr-v-ui-histogram-set-view id="results"></tr-v-ui-histogram-set-view>
+
     <div id="error"></div>
   </template>
 </dom-module>
@@ -59,7 +64,7 @@ tr.exportTo('tr.ui', function() {
           }, this);
 
       this.settingsKey_ = 'metrics-side-panel-metric-name';
-      this.currentMetricName_ = 'systemHealthMetrics';
+      this.currentMetricName_ = 'responsivenessMetric';
       var metricSelector = tr.ui.b.createSelector(
           this, 'currentMetricName_',
           this.settingsKey_,
@@ -163,7 +168,6 @@ tr.exportTo('tr.ui', function() {
     },
 
     updateContents_: function() {
-      this.style.width = '';
       Polymer.dom(this.$.error).textContent = '';
       this.$.results.style.display = 'none';
 
@@ -182,7 +186,7 @@ tr.exportTo('tr.ui', function() {
 
       var startDate = new Date();
       try {
-        var values = tr.metrics.runMetrics(this.model_, options);
+        var histograms = tr.metrics.runMetrics(this.model_, options);
       } catch (err) {
         console.warn(
             this.currentMetricName_ +
@@ -199,12 +203,7 @@ tr.exportTo('tr.ui', function() {
       this.recomputeButton_.style.background = '';
 
       this.$.results.style.display = '';
-      this.$.results.values = values;
-
-      tr.b.requestAnimationFrame(function() {
-        var width = this.$.results.getBoundingClientRect().width + 15;
-        this.style.width = width + 'px';
-      }, this);
+      this.$.results.histograms = histograms;
     }
   });
 

@@ -6,14 +6,14 @@
 # TODO(qyearsley): Add a step to put static files in a versioned
 # directory and modify app.yaml and request_handler as needed.
 
+import os
 import subprocess
 import sys
 
-from catapult_build import module_finder
 from catapult_build import temp_deployment_dir
 
 
-def AppcfgUpdate(paths, app_id):
+def AppcfgUpdate(paths, app_id, service_name=None):
   """Deploys a new version of an App Engine app from a temporary directory.
 
   Args:
@@ -21,28 +21,36 @@ def AppcfgUpdate(paths, app_id):
         (or copied) in the deployment directory.
     app_id: The application ID to use.
   """
-  try:
-    import appcfg  # pylint: disable=unused-variable
-  except ImportError:
-    # TODO(qyearsley): Put the App Engine SDK in the path with the
-    # binary dependency manager.
-    # See: https://github.com/catapult-project/catapult/issues/2135
-    print 'This script requires the App Engine SDK to be in PYTHONPATH.'
-    sys.exit(1)
   with temp_deployment_dir.TempDeploymentDir(
       paths, use_symlinks=False) as temp_dir:
     print 'Deploying from "%s".' % temp_dir
-    _Run([
-        module_finder.FindModule('appcfg'),
+
+    script_path = _FindScriptInPath('appcfg.py')
+    if not script_path:
+      print 'This script requires the App Engine SDK to be in PATH.'
+      sys.exit(1)
+
+    subprocess.call([
+        sys.executable,
+        script_path,
         '--application=%s' % app_id,
         '--version=%s' % _VersionName(),
         'update',
-        temp_dir,
+        os.path.join(temp_dir, service_name) if service_name else temp_dir,
     ])
 
 
+def _FindScriptInPath(script_name):
+  for path in os.environ['PATH'].split(os.pathsep):
+    script_path = os.path.join(path, script_name)
+    if os.path.exists(script_path):
+      return script_path
+
+  return None
+
+
 def _VersionName():
-  is_synced = not _Run(['git', 'diff', 'master']).strip()
+  is_synced = not _Run(['git', 'diff', 'master', '--no-ext-diff']).strip()
   deployment_type = 'clean' if is_synced else 'dev'
   email = _Run(['git', 'config', '--get', 'user.email'])
   username = email[0:email.find('@')]

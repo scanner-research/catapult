@@ -6,6 +6,7 @@ found in the LICENSE file.
 -->
 
 <link rel="import" href="/tracing/base/rect.html">
+<link rel="import" href="/tracing/base/scalar.html">
 <link rel="import" href="/tracing/base/utils.html">
 <link rel="import" href="/tracing/model/event_set.html">
 <link rel="import" href="/tracing/model/object_instance.html">
@@ -13,7 +14,6 @@ found in the LICENSE file.
 <link rel="import" href="/tracing/ui/analysis/analysis_link.html">
 <link rel="import" href="/tracing/ui/base/table.html">
 <link rel="import" href="/tracing/ui/base/ui.html">
-<link rel="import" href="/tracing/value/numeric.html">
 <link rel="import" href="/tracing/value/ui/scalar_span.html">
 
 <dom-module id='tr-ui-a-generic-object-view'>
@@ -44,7 +44,7 @@ function isTable(object) {
     for (var colName in object[i]) {
       if (i && (object[0][colName] === undefined)) return false;
       var cellType = typeof object[i][colName];
-      if (cellType !== 'string' && cellType != 'number') return false;
+      if (cellType !== 'string' && cellType !== 'number') return false;
     }
     if (i) {
       for (var colName in object[0]) {
@@ -96,10 +96,10 @@ Polymer({
 
     if (!(object instanceof Object)) {
       var type = typeof object;
-      if (type == 'string') {
+      if (type === 'string') {
         var objectReplaced = false;
-        if ((object[0] == '{' && object[object.length - 1] == '}') ||
-            (object[0] == '[' && object[object.length - 1] == ']')) {
+        if ((object[0] === '{' && object[object.length - 1] === '}') ||
+            (object[0] === '[' && object[object.length - 1] === ']')) {
           try {
             object = JSON.parse(object);
             objectReplaced = true;
@@ -110,8 +110,11 @@ Polymer({
           if (object.indexOf('\n') !== -1) {
             var lines = object.split('\n');
             lines.forEach(function(line, i) {
-              var text, ioff, ll, ss;
-              if (i == 0) {
+              var text;
+              var ioff;
+              var ll;
+              var ss;
+              if (i === 0) {
                 text = '"' + line;
                 ioff = 0;
                 ll = label;
@@ -173,9 +176,10 @@ Polymer({
       return;
     }
 
-    if (object instanceof tr.v.ScalarNumeric) {
+    if (object instanceof tr.b.Scalar) {
       var el = this.ownerDocument.createElement('tr-v-ui-scalar-span');
       el.value = object;
+      el.inline = true;
       this.appendElementWithLabel_(label, indent, el, suffix);
       return;
     }
@@ -192,7 +196,7 @@ Polymer({
 
   appendElementsForArray_: function(
       label, object, indent, depth, maxDepth, suffix) {
-    if (object.length == 0) {
+    if (object.length === 0) {
       this.appendSimpleText_(label, indent, '[]', suffix);
       return;
     }
@@ -254,8 +258,8 @@ Polymer({
 
   appendElementsForObject_: function(
       label, object, indent, depth, maxDepth, suffix) {
-    var keys = tr.b.dictionaryKeys(object);
-    if (keys.length == 0) {
+    var keys = Object.keys(object);
+    if (keys.length === 0) {
       this.appendSimpleText_(label, indent, '{}', suffix);
       return;
     }

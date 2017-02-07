@@ -167,8 +167,10 @@ tr.exportTo('tr.e.importer.linux_perf', function() {
 
     binderLocked: function(eventName, cpuNumber, pid, ts, eventBase) {
       var binderThread = isBinderThread(eventBase.threadName);
-      var tgid, name;
-      var kthread, rthread;
+      var tgid;
+      var name;
+      var kthread;
+      var rthread;
 
       tgid = parseInt(eventBase.tgid);
       name = eventBase.threadName;
@@ -253,7 +255,7 @@ tr.exportTo('tr.e.importer.linux_perf', function() {
      *  binder object from B. This function adds outstanding non-complete
      *  transactions to a stack on thread B.
      *
-     * Case Four: 'recursive_trans'
+     * Case Four: 'recursiveTrans'
      *  This case follows Like above:
      *  A sent binder_transaction
      *  B got binder_transaction_received
@@ -465,11 +467,11 @@ tr.exportTo('tr.e.importer.linux_perf', function() {
     },
 
     // helper functions
-    modelRecursiveTransactions: function(recursive_trans, ts, pid, kthread,
+    modelRecursiveTransactions: function(recursiveTrans, ts, pid, kthread,
                                          trans, args) {
 
-      var recursiveSlice = recursive_trans[1].slice;
-      var origSlice = recursive_trans[0].slice;
+      var recursiveSlice = recursiveTrans[1].slice;
+      var origSlice = recursiveTrans[0].slice;
       recursiveSlice.duration = ts - recursiveSlice.start;
       trans.slice = recursiveSlice;
 
@@ -479,9 +481,9 @@ tr.exportTo('tr.e.importer.linux_perf', function() {
          */
         origSlice.duration = ts - origSlice.start;
         this.addSyncTransNeedingCompletion(trans.transaction_key,
-             recursive_trans);
+             recursiveTrans);
 
-        if (isReplyToOrigin(recursive_trans[0], trans))
+        if (isReplyToOrigin(recursiveTrans[0], trans))
           this.removeRecursiveTransaction(pid);
       } else {
         /**
@@ -491,7 +493,7 @@ tr.exportTo('tr.e.importer.linux_perf', function() {
          *  it can either be a async or a normal sync transaction.
          */
         var slice = kthread.thread.sliceGroup.pushCompleteSlice('binder',
-            '' , ts, .03, 0,
+            '', ts, .03, 0,
             0, args);
 
         trans.slice = slice;
@@ -557,7 +559,7 @@ tr.exportTo('tr.e.importer.linux_perf', function() {
              *
              * This is commented out because AIDL tracing doesn't exit yet.
              */
-            //slice.start += .15;
+            // slice.start += .15;
           }
           trans1.slice = slice;
           this.addRecursiveSyncTransNeedingCompletion(pid,
@@ -686,7 +688,7 @@ tr.exportTo('tr.e.importer.linux_perf', function() {
 
   Parser.register(BinderParser);
   return {
-    BinderParser: BinderParser
+    BinderParser,
   };
 });
 </script>

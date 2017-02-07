@@ -18,13 +18,28 @@ found in the LICENSE file.
 'use strict';
 
 tr.b.unittest.testSuite(function() {
-  var ScalarNumeric = tr.v.ScalarNumeric;
+  var Scalar = tr.b.Scalar;
   var Unit = tr.b.Unit;
   var THIS_DOC = document.currentScript.ownerDocument;
 
+  var EXAMPLE_MEMORY_FORMATTING_CONTEXT = {
+    unitPrefix: tr.b.UnitPrefixScale.BINARY.KIBI,
+  };
+  var EXAMPLE_MEMORY_NUMERIC = new Scalar(
+      Unit.byName.sizeInBytesDelta_smallerIsBetter, 256 * 1024 * 1024);
+
+  function checkSignificance(span, expectedSignificance) {
+    assert.strictEqual(span.$.insignificant.style.display,
+        expectedSignificance === 'insignificant' ? 'inline' : '');
+    assert.strictEqual(span.$.significantly_better.style.display,
+        expectedSignificance === 'significantly_better' ? 'inline' : '');
+    assert.strictEqual(span.$.significantly_worse.style.display,
+        expectedSignificance === 'significantly_worse' ? 'inline' : '');
+  }
+
   function checkScalarSpan(test, value, unit, expectedContent, opt_options) {
     var options = opt_options || {};
-    var span = tr.v.ui.createScalarSpan(new tr.v.ScalarNumeric(unit, value),
+    var span = tr.v.ui.createScalarSpan(new tr.b.Scalar(unit, value),
         {significance: options.significance});
 
     test.addHTMLOutput(span);
@@ -33,16 +48,15 @@ tr.b.unittest.testSuite(function() {
     assert.strictEqual(window.getComputedStyle(span.$.content).color,
         options.expectedColor || 'rgb(0, 0, 0)');
 
-    if (options.expectedTitle)
+    if (options.expectedTitle) {
       assert.strictEqual(span.$.content.title, options.expectedTitle);
+    }
 
     if (options.significance !== undefined) {
-      assert.strictEqual(Polymer.dom(span.$.significance).textContent,
-          options.expectedEmoji);
-      assert.strictEqual(window.getComputedStyle(span.$.significance).color,
-          options.expectedEmojiColor || 'rgb(0, 0, 0)');
-      if (options.expectedTitle)
+      checkSignificance(span, options.expectedEmoji);
+      if (options.expectedTitle) {
         assert.strictEqual(span.$.significance.title, options.expectedTitle);
+      }
     }
   }
 
@@ -54,85 +68,85 @@ tr.b.unittest.testSuite(function() {
     var zero = String.fromCharCode(177) + '0';
 
     checkScalarSpan(this, 0, countSIBD, zero, {
-      significance: tr.v.Significance.DONT_CARE,
+      significance: tr.b.Statistics.Significance.DONT_CARE,
       expectedTitle: 'no change',
       expectedEmoji: ''
     });
 
     checkScalarSpan(this, 0, countSIBD, zero, {
-      significance: tr.v.Significance.INSIGNIFICANT,
-      expectedEmoji: tr.v.ui.Emoji.NEUTRAL_FACE,
+      expectedEmoji: 'insignificant',
+      significance: tr.b.Statistics.Significance.INSIGNIFICANT,
       expectedEmojiColor: 'rgb(0, 0, 0)',
       expectedTitle: 'no change'
     });
 
     assert.throws(() => checkScalarSpan(this, 0, countSIBD, zero,
-      {significance: tr.v.Significance.SIGNIFICANT}));
+      {significance: tr.b.Statistics.Significance.SIGNIFICANT}));
 
     checkScalarSpan(this, 0, countBIBD, zero, {
-      significance: tr.v.Significance.DONT_CARE,
+      significance: tr.b.Statistics.Significance.DONT_CARE,
       expectedTitle: 'no change',
       expectedEmoji: ''
     });
 
     checkScalarSpan(this, 0, countBIBD, zero, {
-      significance: tr.v.Significance.INSIGNIFICANT,
-      expectedEmoji: tr.v.ui.Emoji.NEUTRAL_FACE,
+      expectedEmoji: 'insignificant',
+      significance: tr.b.Statistics.Significance.INSIGNIFICANT,
       expectedEmojiColor: 'rgb(0, 0, 0)',
       expectedTitle: 'no change'
     });
 
     assert.throws(() => checkScalarSpan(this, 0, countSIBD, zero,
-      {significance: tr.v.Significance.SIGNIFICANT}));
+      {significance: tr.b.Statistics.Significance.SIGNIFICANT}));
 
     checkScalarSpan(this, 1, countSIBD, '+1', {
-      significance: tr.v.Significance.DONT_CARE,
+      significance: tr.b.Statistics.Significance.DONT_CARE,
       expectedColor: 'rgb(255, 0, 0)',
       expectedTitle: 'regression',
       expectedEmoji: ''
     });
 
     checkScalarSpan(this, 1, countSIBD, '+1', {
-      significance: tr.v.Significance.INSIGNIFICANT,
+      significance: tr.b.Statistics.Significance.INSIGNIFICANT,
       expectedColor: 'rgb(255, 0, 0)',
-      expectedEmoji: tr.v.ui.Emoji.NEUTRAL_FACE,
+      expectedEmoji: 'insignificant',
       expectedEmojiColor: 'rgb(0, 0, 0)',
       expectedTitle: 'insignificant regression'
     });
 
     checkScalarSpan(this, 1, countSIBD, '+1', {
-      significance: tr.v.Significance.SIGNIFICANT,
+      significance: tr.b.Statistics.Significance.SIGNIFICANT,
       expectedColor: 'rgb(255, 0, 0)',
-      expectedEmoji: tr.v.ui.Emoji.CONFOUNDED_FACE,
+      expectedEmoji: 'significantly_worse',
       expectedEmojiColor: 'rgb(255, 0, 0)',
       expectedTitle: 'significant regression'
     });
 
     checkScalarSpan(this, 1, countBIBD, '+1', {
-      significance: tr.v.Significance.DONT_CARE,
+      significance: tr.b.Statistics.Significance.DONT_CARE,
       expectedColor: 'rgb(0, 128, 0)',
       expectedTitle: 'improvement',
       expectedEmoji: ''
     });
 
     checkScalarSpan(this, 1, countBIBD, '+1', {
-      significance: tr.v.Significance.INSIGNIFICANT,
+      significance: tr.b.Statistics.Significance.INSIGNIFICANT,
       expectedColor: 'rgb(0, 128, 0)',
-      expectedEmoji: tr.v.ui.Emoji.NEUTRAL_FACE,
+      expectedEmoji: 'insignificant',
       expectedEmojiColor: 'rgb(0, 0, 0)',
       expectedTitle: 'insignificant improvement'
     });
 
     checkScalarSpan(this, 1, countBIBD, '+1', {
-      significance: tr.v.Significance.SIGNIFICANT,
+      significance: tr.b.Statistics.Significance.SIGNIFICANT,
       expectedColor: 'rgb(0, 128, 0)',
-      expectedEmoji: tr.v.ui.Emoji.GRINNING_FACE,
+      expectedEmoji: 'significantly_better',
       expectedEmojiColor: 'rgb(0, 128, 0)',
       expectedTitle: 'significant improvement'
     });
 
     checkScalarSpan(this, -1, countSIBD, '-1', {
-      significance: tr.v.Significance.DONT_CARE,
+      significance: tr.b.Statistics.Significance.DONT_CARE,
       expectedColor: 'rgb(0, 128, 0)',
       expectedEmoji: '',
       expectedEmojiColor: '',
@@ -140,76 +154,76 @@ tr.b.unittest.testSuite(function() {
     });
 
     checkScalarSpan(this, -1, countSIBD, '-1', {
+      significance: tr.b.Statistics.Significance.INSIGNIFICANT,
       expectedColor: 'rgb(0, 128, 0)',
-      significance: tr.v.Significance.INSIGNIFICANT,
-      expectedEmoji: tr.v.ui.Emoji.NEUTRAL_FACE,
+      expectedEmoji: 'insignificant',
       expectedEmojiColor: 'rgb(0, 0, 0)',
       expectedTitle: 'insignificant improvement'
     });
 
     checkScalarSpan(this, -1, countSIBD, '-1', {
+      significance: tr.b.Statistics.Significance.SIGNIFICANT,
       expectedColor: 'rgb(0, 128, 0)',
-      significance: tr.v.Significance.SIGNIFICANT,
-      expectedEmoji: tr.v.ui.Emoji.GRINNING_FACE,
+      expectedEmoji: 'significantly_better',
       expectedEmojiColor: 'rgb(0, 128, 0)',
       expectedTitle: 'significant improvement'
     });
 
     checkScalarSpan(this, -1, countBIBD, '-1', {
       expectedColor: 'rgb(255, 0, 0)',
-      significance: tr.v.Significance.DONT_CARE,
+      significance: tr.b.Statistics.Significance.DONT_CARE,
       expectedEmoji: ''
     });
 
     checkScalarSpan(this, -1, countBIBD, '-1', {
+      significance: tr.b.Statistics.Significance.INSIGNIFICANT,
       expectedColor: 'rgb(255, 0, 0)',
-      significance: tr.v.Significance.INSIGNIFICANT,
-      expectedEmoji: tr.v.ui.Emoji.NEUTRAL_FACE,
+      expectedEmoji: 'insignificant',
       expectedEmojiColor: 'rgb(0, 0, 0)',
       expectedTitle: 'insignificant regression'
     });
 
     checkScalarSpan(this, -1, countBIBD, '-1', {
+      significance: tr.b.Statistics.Significance.SIGNIFICANT,
       expectedColor: 'rgb(255, 0, 0)',
-      significance: tr.v.Significance.SIGNIFICANT,
-      expectedEmoji: tr.v.ui.Emoji.CONFOUNDED_FACE,
+      expectedEmoji: 'significantly_worse',
       expectedEmojiColor: 'rgb(255, 0, 0)',
       expectedTitle: 'significant regression'
     });
 
     checkScalarSpan(this, 1, countD, '+1', {
       expectedColor: 'rgb(0, 0, 0)',
-      significance: tr.v.Significance.DONT_CARE,
+      significance: tr.b.Statistics.Significance.DONT_CARE,
       expectedEmoji: ''
     });
 
     checkScalarSpan(this, 1, countD, '+1', {
       expectedColor: 'rgb(0, 0, 0)',
-      significance: tr.v.Significance.INSIGNIFICANT,
+      significance: tr.b.Statistics.Significance.INSIGNIFICANT,
       expectedEmoji: ''
     });
 
     checkScalarSpan(this, 1, countD, '+1', {
       expectedColor: 'rgb(0, 0, 0)',
-      significance: tr.v.Significance.SIGNIFICANT,
+      significance: tr.b.Statistics.Significance.SIGNIFICANT,
       expectedEmoji: ''
     });
 
     checkScalarSpan(this, -1, countD, '-1', {
       expectedColor: 'rgb(0, 0, 0)',
-      significance: tr.v.Significance.DONT_CARE,
+      significance: tr.b.Statistics.Significance.DONT_CARE,
       expectedEmoji: ''
     });
 
     checkScalarSpan(this, -1, countD, '-1', {
       expectedColor: 'rgb(0, 0, 0)',
-      significance: tr.v.Significance.INSIGNIFICANT,
+      significance: tr.b.Statistics.Significance.INSIGNIFICANT,
       expectedEmoji: ''
     });
 
     checkScalarSpan(this, -1, countD, '-1', {
       expectedColor: 'rgb(0, 0, 0)',
-      significance: tr.v.Significance.SIGNIFICANT,
+      significance: tr.b.Statistics.Significance.SIGNIFICANT,
       expectedEmoji: ''
     });
   });
@@ -273,7 +287,7 @@ tr.b.unittest.testSuite(function() {
   test('createScalarSpan', function() {
     // No config.
     var span = tr.v.ui.createScalarSpan(
-        new ScalarNumeric(Unit.byName.powerInWatts, 3.14));
+        new Scalar(Unit.byName.powerInWatts, 3.14));
     assert.strictEqual(Polymer.dom(span.$.content).textContent, '3.140 W');
     assert.strictEqual(span.ownerDocument, document);
     assert.strictEqual(span.tagName, 'TR-V-UI-SCALAR-SPAN');
@@ -282,13 +296,35 @@ tr.b.unittest.testSuite(function() {
     assert.isUndefined(span.context);
     assert.isUndefined(span.customContextRange);
     assert.isUndefined(span.warning);
-    assert.isFalse(span.rightAlign);
+    assert.isFalse(span.leftAlign);
     this.addHTMLOutput(span);
+
+    // Inline.
+    var div = document.createElement('div');
+    this.addHTMLOutput(div);
+    var inlineSpan = tr.v.ui.createScalarSpan(
+        new Scalar(Unit.byName.powerInWatts, 3.14),
+        {inline: true});
+    assert.strictEqual(Polymer.dom(inlineSpan.$.content).textContent,
+        '3.140 W');
+    assert.strictEqual(inlineSpan.ownerDocument, document);
+    assert.strictEqual(inlineSpan.tagName, 'TR-V-UI-SCALAR-SPAN');
+    assert.strictEqual(inlineSpan.value, 3.14);
+    assert.strictEqual(inlineSpan.unit, Unit.byName.powerInWatts);
+    assert.isUndefined(inlineSpan.context);
+    assert.isUndefined(inlineSpan.customContextRange);
+    assert.isUndefined(inlineSpan.warning);
+    assert.isFalse(inlineSpan.leftAlign);
+    div.appendChild(document.createTextNode('prefix '));
+    div.appendChild(inlineSpan);
+    div.appendChild(document.createTextNode(' suffix'));
+    assert.isBelow(inlineSpan.getBoundingClientRect().width,
+        span.getBoundingClientRect().width);
 
     // Custom owner document and right align.
     var span = tr.v.ui.createScalarSpan(
-        new ScalarNumeric(Unit.byName.energyInJoules, 2.72),
-        { ownerDocument: THIS_DOC, rightAlign: true });
+        new Scalar(Unit.byName.energyInJoules, 2.72),
+        { ownerDocument: THIS_DOC, leftAlign: true});
     assert.strictEqual(Polymer.dom(span.$.content).textContent, '2.720 J');
     assert.strictEqual(span.ownerDocument, THIS_DOC);
     assert.strictEqual(span.tagName, 'TR-V-UI-SCALAR-SPAN');
@@ -297,7 +333,7 @@ tr.b.unittest.testSuite(function() {
     assert.isUndefined(span.context);
     assert.isUndefined(span.customContextRange);
     assert.isUndefined(span.warning);
-    assert.isTrue(span.rightAlign);
+    assert.isTrue(span.leftAlign);
     this.addHTMLOutput(span);
 
     // Unit and sparkline set via config.
@@ -314,14 +350,14 @@ tr.b.unittest.testSuite(function() {
     assert.isTrue(tr.b.Range.fromExplicitRange(0, 3.24).equals(
         span.customContextRange));
     assert.isUndefined(span.warning);
-    assert.isFalse(span.rightAlign);
+    assert.isFalse(span.leftAlign);
     this.addHTMLOutput(span);
 
     // Custom context.
     var span = tr.v.ui.createScalarSpan(
-        new ScalarNumeric(Unit.byName.sizeInBytesDelta_smallerIsBetter,
+        new Scalar(Unit.byName.sizeInBytesDelta_smallerIsBetter,
             256 * 1024 * 1024), { context: {
-              unitPrefix: tr.b.UnitScale.Binary.KIBI,
+              unitPrefix: tr.b.UnitPrefixScale.BINARY.KIBI,
               minimumFractionDigits: 2
             } });
     assert.strictEqual(
@@ -330,11 +366,13 @@ tr.b.unittest.testSuite(function() {
     assert.strictEqual(span.tagName, 'TR-V-UI-SCALAR-SPAN');
     assert.strictEqual(span.value, 256 * 1024 * 1024);
     assert.strictEqual(span.unit, Unit.byName.sizeInBytesDelta_smallerIsBetter);
-    assert.deepEqual(span.context,
-        { unitPrefix: tr.b.UnitScale.Binary.KIBI, minimumFractionDigits: 2 });
+    assert.deepEqual(span.context, {
+      unitPrefix: tr.b.UnitPrefixScale.BINARY.KIBI,
+      minimumFractionDigits: 2
+    });
     assert.isUndefined(span.customContextRange);
     assert.isUndefined(span.warning);
-    assert.isFalse(span.rightAlign);
+    assert.isFalse(span.leftAlign);
     this.addHTMLOutput(span);
   });
 
@@ -348,25 +386,72 @@ tr.b.unittest.testSuite(function() {
 
   test('instantiate_withCustomContextRange', function() {
     var span = document.createElement('tr-v-ui-scalar-span');
-    span.value = new ScalarNumeric(Unit.byName.unitlessNumber, 0.99);
+    span.value = new Scalar(Unit.byName.unitlessNumber, 0.99);
     span.customContextRange = tr.b.Range.fromExplicitRange(0, 3);
     this.addHTMLOutput(span);
   });
 
   test('instantiate_withRightAlign', function() {
     var span = document.createElement('tr-v-ui-scalar-span');
-    span.value = new ScalarNumeric(Unit.byName.timeStampInMs, 5.777);
-    span.rightAlign = true;
+    span.value = new Scalar(Unit.byName.timeStampInMs, 5.777);
+    span.leftAlign = true;
     this.addHTMLOutput(span);
   });
 
   test('instantiate_withContext', function() {
     var span = document.createElement('tr-v-ui-scalar-span');
-    span.value = new ScalarNumeric(
+    span.value = new Scalar(
         Unit.byName.unitlessNumberDelta_smallerIsBetter, 42);
     span.context = { maximumFractionDigits: 2 };
     assert.strictEqual(Polymer.dom(span.$.content).textContent, '+42.00');
     this.addHTMLOutput(span);
+  });
+
+  test('deltaAndNonDeltaHaveSimilarHeights', function() {
+    var spanA = document.createElement('tr-v-ui-scalar-span');
+    spanA.setValueAndUnit(400, Unit.byName.timeDurationInMs);
+    checkSignificance(spanA, '');
+
+    var spanB = document.createElement('tr-v-ui-scalar-span');
+    spanB.setValueAndUnit(400, Unit.byName.timeDurationInMsDelta);
+    checkSignificance(spanB, '');
+
+    var spanC = document.createElement('tr-v-ui-scalar-span');
+    spanC.setValueAndUnit(
+        400, Unit.byName.timeDurationInMsDelta_smallerIsBetter);
+    spanC.significance = tr.b.Statistics.Significance.SIGNIFICANT;
+    checkSignificance(spanC, 'significantly_worse');
+
+    var spanD = document.createElement('tr-v-ui-scalar-span');
+    spanD.setValueAndUnit(
+        400, Unit.byName.timeDurationInMsDelta_biggerIsBetter);
+    spanD.significance = tr.b.Statistics.Significance.SIGNIFICANT;
+    checkSignificance(spanD, 'significantly_better');
+
+    var spanE = document.createElement('tr-v-ui-scalar-span');
+    spanE.setValueAndUnit(
+        400, Unit.byName.timeDurationInMsDelta_smallerIsBetter);
+    spanE.significance = tr.b.Statistics.Significance.INSIGNIFICANT;
+    checkSignificance(spanE, 'insignificant');
+
+    var overall = document.createElement('div');
+    overall.style.display = 'flex';
+    // These spans must be on separate lines so that Chrome has the option of
+    // making their heights different. The point of the test is that Chrome
+    // shouldn't have to make their heights different even when it could.
+    overall.style.flexDirection = 'column';
+    Polymer.dom(overall).appendChild(spanA);
+    Polymer.dom(overall).appendChild(spanB);
+    Polymer.dom(overall).appendChild(spanC);
+    Polymer.dom(overall).appendChild(spanD);
+    Polymer.dom(overall).appendChild(spanE);
+    this.addHTMLOutput(overall);
+
+    var expectedHeight = spanA.getBoundingClientRect().height;
+    assert.strictEqual(expectedHeight, spanB.getBoundingClientRect().height);
+    assert.strictEqual(expectedHeight, spanC.getBoundingClientRect().height);
+    assert.strictEqual(expectedHeight, spanD.getBoundingClientRect().height);
+    assert.strictEqual(expectedHeight, spanE.getBoundingClientRect().height);
   });
 
   test('warningAndNonWarningHaveSimilarHeights', function() {
@@ -379,10 +464,17 @@ tr.b.unittest.testSuite(function() {
 
     var overall = document.createElement('div');
     overall.style.display = 'flex';
+    // These spans must be on separate lines so that Chrome has the option of
+    // making their heights different. The point of the test is that Chrome
+    // shouldn't have to make their heights different even when it could.
+    overall.style.flexDirection = 'column';
     Polymer.dom(overall).appendChild(spanA);
-    spanB.style.marginLeft = '4px';
     Polymer.dom(overall).appendChild(spanB);
     this.addHTMLOutput(overall);
+
+    var rectA = spanA.getBoundingClientRect();
+    var rectB = spanB.getBoundingClientRect();
+    assert.strictEqual(rectA.height, rectB.height);
   });
 
   test('respectCurrentDisplayUnit', function() {
@@ -817,65 +909,62 @@ tr.b.unittest.testSuite(function() {
 
     var span = tr.v.ui.createScalarSpan(10, {
       unit: Unit.byName.energyInJoulesDelta_smallerIsBetter,
-      significance: tr.v.Significance.SIGNIFICANT,
+      significance: tr.b.Statistics.Significance.SIGNIFICANT,
       customContextRange: tr.b.Range.fromExplicitRange(-20, 20)
     });
     Polymer.dom(div).appendChild(span);
 
-    assert.sameMembers(tr.b.asArray(span.$.sparkline.classList),
-        ['positive', 'worse']);
-    assert.sameMembers(tr.b.asArray(span.$.significance.classList),
-        ['worse']);
     assert.sameMembers(tr.b.asArray(span.$.content.classList), ['worse']);
+    checkSignificance(span, 'significantly_worse');
 
-    span.significance = tr.v.Significance.DONT_CARE;
+    span.significance = tr.b.Statistics.Significance.DONT_CARE;
     assert.sameMembers(tr.b.asArray(span.$.sparkline.classList),
         ['positive', 'worse']);
-    assert.sameMembers(tr.b.asArray(span.$.significance.classList), ['same']);
     assert.sameMembers(tr.b.asArray(span.$.content.classList), ['worse']);
+    checkSignificance(span, '');
 
     span.value = -5;
     assert.sameMembers(tr.b.asArray(span.$.sparkline.classList), ['better']);
-    assert.sameMembers(tr.b.asArray(span.$.significance.classList), ['same']);
     assert.sameMembers(tr.b.asArray(span.$.content.classList), ['better']);
+    checkSignificance(span, '');
 
     span.unit = Unit.byName.energyInJoules;
     assert.sameMembers(tr.b.asArray(span.$.sparkline.classList), []);
-    assert.sameMembers(tr.b.asArray(span.$.significance.classList), []);
     assert.sameMembers(tr.b.asArray(span.$.content.classList), []);
+    checkSignificance(span, '');
 
     span.value = 20;
     assert.sameMembers(tr.b.asArray(span.$.sparkline.classList), ['positive']);
-    assert.sameMembers(tr.b.asArray(span.$.significance.classList), []);
     assert.sameMembers(tr.b.asArray(span.$.content.classList), []);
+    checkSignificance(span, '');
 
     span.unit = Unit.byName.energyInJoulesDelta_biggerIsBetter;
     assert.sameMembers(tr.b.asArray(span.$.sparkline.classList),
         ['positive', 'better']);
-    assert.sameMembers(tr.b.asArray(span.$.significance.classList), ['same']);
     assert.sameMembers(tr.b.asArray(span.$.content.classList), ['better']);
+    checkSignificance(span, '');
 
-    span.significance = tr.v.Significance.INSIGNIFICANT;
+    span.significance = tr.b.Statistics.Significance.INSIGNIFICANT;
     assert.sameMembers(tr.b.asArray(span.$.sparkline.classList),
         ['positive', 'better']);
-    assert.sameMembers(tr.b.asArray(span.$.significance.classList), ['same']);
     assert.sameMembers(tr.b.asArray(span.$.content.classList), ['better']);
+    checkSignificance(span, 'insignificant');
 
     span.unit = Unit.byName.energyInJoulesDelta_smallerIsBetter;
     assert.sameMembers(tr.b.asArray(span.$.sparkline.classList),
         ['positive', 'worse']);
-    assert.sameMembers(tr.b.asArray(span.$.significance.classList), ['same']);
     assert.sameMembers(tr.b.asArray(span.$.content.classList), ['worse']);
+    checkSignificance(span, 'insignificant');
 
     span.unit = Unit.byName.energyInJoulesDelta;
     assert.sameMembers(tr.b.asArray(span.$.sparkline.classList), ['positive']);
-    assert.sameMembers(tr.b.asArray(span.$.significance.classList), []);
     assert.sameMembers(tr.b.asArray(span.$.content.classList), []);
+    checkSignificance(span, '');
 
     span.value = 0;
     assert.sameMembers(tr.b.asArray(span.$.sparkline.classList), []);
-    assert.sameMembers(tr.b.asArray(span.$.significance.classList), []);
     assert.sameMembers(tr.b.asArray(span.$.content.classList), []);
+    checkSignificance(span, '');
   });
 
   test('sparkline_uncentered', function() {
@@ -925,5 +1014,15 @@ tr.b.unittest.testSuite(function() {
       customContextRange: tr.b.Range.fromExplicitRange(-100, 100)
     }));
   });
+
+  timedPerfTest('memory_scalar_spans', function() {
+    tr.v.ui.createScalarSpan(EXAMPLE_MEMORY_NUMERIC, {
+      context: EXAMPLE_MEMORY_FORMATTING_CONTEXT,
+      inline: true,
+    });
+  }, {
+    iterations: 1000,
+  });
+
 });
 </script>
